@@ -1,0 +1,1993 @@
+openapi: 3.0.3
+info:
+  title: Dental Clinic API
+  version: 1.0.0
+  description: REST API for the Dental Clinic website with Super Admin CMS.
+
+servers:
+  - url: /
+    description: Same host as Swagger UI
+
+tags:
+  - name: Auth
+  - name: Blogs
+  - name: Appointments
+  - name: Contact
+  - name: Testimonials
+  - name: Services
+  - name: Settings
+  - name: FAQs
+  - name: Dashboard
+  - name: Schedule
+  - name: Health
+  - name: Banners
+  - name: Subscriptions
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  uptime:
+                    type: number
+
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login to account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '401':
+          description: Invalid credentials
+        '403':
+          description: User not verified
+
+  /api/auth/login/verify:
+    post:
+      tags: [Auth]
+      summary: Verify login OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyOtpRequest'
+      responses:
+        '200':
+          description: Verified successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Invalid or expired OTP
+        '404':
+          description: User not found
+
+  /api/auth/signup:
+    post:
+      tags: [Auth]
+      summary: Register new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignupRequest'
+      responses:
+        '201':
+          description: Created
+        '400':
+          description: Validation error or conflict
+
+  /api/auth/signup/verify:
+    post:
+      tags: [Auth]
+      summary: Verify signup OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyOtpRequest'
+      responses:
+        '200':
+          description: Verified successfully
+        '400':
+          description: Invalid or expired OTP
+        '404':
+          description: User not found
+
+
+  /api/auth/forgot-password:
+    post:
+      tags: [Auth]
+      summary: Request password reset OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+      responses:
+        '200':
+          description: OTP sent
+        '404':
+          description: User not found
+
+  /api/auth/forgot-password/verify:
+    post:
+      tags: [Auth]
+      summary: Verify OTP and reset password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyForgotPasswordRequest'
+      responses:
+        '200':
+          description: Password reset successful
+        '400':
+          description: Invalid or expired OTP
+        '404':
+          description: User not found
+
+  /api/blogs:
+    get:
+      tags: [Blogs]
+      summary: List all blogs (requires auth)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Blog list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Blog'
+
+  /api/blogs/{slug}:
+    get:
+      tags: [Blogs]
+      summary: Get blog by slug
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Blog
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Blog'
+        '404':
+          description: Not found
+
+  /api/blogs/admin:
+    post:
+      tags: [Blogs]
+      summary: Create blog (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BlogCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Blog'
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /api/blogs/admin/{id}:
+    put:
+      tags: [Blogs]
+      summary: Update blog (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BlogUpdate'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Blog'
+        '404':
+          description: Not found
+
+  /api/blog-categories:
+    get:
+      tags: [Blogs]
+      summary: List blog categories (public)
+      responses:
+        '200':
+          description: Category list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BlogCategory'
+    post:
+      tags: [Blogs]
+      summary: Create blog category (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BlogCategoryCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogCategory'
+        '400':
+          description: Validation error or conflict
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /api/blog-categories/{id}:
+    put:
+      tags: [Blogs]
+      summary: Update blog category (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BlogCategoryUpdate'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogCategory'
+        '404':
+          description: Not found
+    delete:
+      tags: [Blogs]
+      summary: Delete blog category (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted
+        '404':
+          description: Not found
+    delete:
+      tags: [Blogs]
+      summary: Delete blog (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted
+        '404':
+          description: Not found
+
+  /api/appointments:
+    post:
+      tags: [Appointments]
+      summary: Create appointment (public)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppointmentCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+        '400':
+          description: Validation error
+
+  /api/appointments/admin:
+    get:
+      tags: [Appointments]
+      summary: List appointments (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, approved, rejected]
+      responses:
+        '200':
+          description: Appointment list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Appointment'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /api/appointments/admin/{id}:
+    put:
+      tags: [Appointments]
+      summary: Update appointment status (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppointmentStatusUpdate'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+        '404':
+          description: Not found
+    delete:
+      tags: [Appointments]
+      summary: Delete appointment (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted
+        '404':
+          description: Not found
+
+  /api/contact:
+    post:
+      tags: [Contact]
+      summary: Submit contact message (public)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContactCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contact'
+
+  /api/contact/admin:
+    get:
+      tags: [Contact]
+      summary: List contact messages (admin)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Contact message list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Contact'
+
+  /api/contact/admin/{id}/reply:
+    post:
+      tags: [Contact]
+      summary: Reply to contact message (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContactReply'
+      responses:
+        '200':
+          description: Reply sent
+        '404':
+          description: Not found
+
+  /api/contact/admin/{id}:
+    delete:
+      tags: [Contact]
+      summary: Delete contact message (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted
+        '404':
+          description: Not found
+
+  /api/testimonials:
+    get:
+      tags: [Testimonials]
+      summary: List approved testimonials (public)
+      responses:
+        '200':
+          description: Testimonials
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Testimonial'
+    post:
+      tags: [Testimonials]
+      summary: Create testimonial (public)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestimonialCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Testimonial'
+
+  /api/testimonials/admin:
+    get:
+      tags: [Testimonials]
+      summary: List all testimonials (admin)
+      description: Returns both approved and unapproved testimonials.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Testimonials
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Testimonial'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /api/testimonials/admin/{id}:
+    put:
+      tags: [Testimonials]
+      summary: Update testimonial (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestimonialUpdate'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Testimonial'
+        '404':
+          description: Not found
+    delete:
+      tags: [Testimonials]
+      summary: Delete testimonial (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted
+        '404':
+          description: Not found
+
+  /api/services:
+    get:
+      tags: [Services]
+      summary: List active services (public)
+      responses:
+        '200':
+          description: Services
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Service'
+
+  /api/services/admin:
+    post:
+      tags: [Services]
+      summary: Create service (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Service'
+
+  /api/services/admin/{id}:
+    put:
+      tags: [Services]
+      summary: Update service (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceUpdate'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Service'
+        '404':
+          description: Not found
+    delete:
+      tags: [Services]
+      summary: Delete service (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted
+        '404':
+          description: Not found
+
+  /api/faqs:
+    get:
+      tags: [FAQs]
+      summary: List FAQs (public)
+      responses:
+        '200':
+          description: FAQ list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Faq'
+
+  /api/faqs/admin:
+    get:
+      tags: [FAQs]
+      summary: List FAQs (admin)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: FAQ list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Faq'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+    post:
+      tags: [FAQs]
+      summary: Create FAQ (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FaqCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Faq'
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /api/faqs/admin/{id}:
+    put:
+      tags: [FAQs]
+      summary: Update FAQ (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FaqUpdate'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Faq'
+        '404':
+          description: Not found
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+    delete:
+      tags: [FAQs]
+      summary: Delete FAQ (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted
+        '404':
+          description: Not found
+        '401':
+          description: Unauthorized
+
+  /api/settings:
+    get:
+      tags: [Settings]
+      summary: Get public site settings
+      responses:
+        '200':
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SiteSettings'
+
+  /api/settings/admin:
+    put:
+      tags: [Settings]
+      summary: Upsert site settings (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SiteSettings'
+      responses:
+        '200':
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SiteSettings'
+
+  /api/dashboard/admin:
+    get:
+      tags: [Dashboard]
+      summary: Get dashboard counts (admin)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Dashboard counts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardCounts'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /api/schedule/availability:
+    post:
+      tags: [Schedule]
+      summary: Set doctor weekly availability (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DoctorAvailabilityCreate'
+      responses:
+        '201':
+          description: Saved availability
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorAvailability'
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /api/schedule/break:
+    post:
+      tags: [Schedule]
+      summary: Add recurring break time (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DoctorBreakCreate'
+      responses:
+        '201':
+          description: Created break
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorBreak'
+        '409':
+          description: Break already exists
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /api/schedule/block:
+    post:
+      tags: [Schedule]
+      summary: Block date-specific slot range (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BlockedSlotCreate'
+      responses:
+        '201':
+          description: Created block
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlockedSlot'
+        '409':
+          description: Block already exists
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /api/schedule/slots:
+    get:
+      tags: [Schedule]
+      summary: Get available slots for a date (public)
+      parameters:
+        - in: query
+          name: doctor_id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: date
+          required: true
+          schema:
+            type: string
+            example: '2026-03-20'
+      responses:
+        '200':
+          description: Slots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GeneratedSlot'
+        '400':
+          description: Validation error
+
+  /api/banners:
+    get:
+      tags: [Banners]
+      summary: List active banners (public)
+      responses:
+        '200':
+          description: Banners
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Banner'
+
+  /api/banners/admin:
+    get:
+      tags: [Banners]
+      summary: List all banners (admin)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Banners
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Banner'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+    post:
+      tags: [Banners]
+      summary: Create banner (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BannerCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Banner'
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /api/banners/admin/{id}:
+    put:
+      tags: [Banners]
+      summary: Update banner (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BannerUpdate'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Banner'
+        '404':
+          description: Not found
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+    delete:
+      tags: [Banners]
+      summary: Delete banner (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted
+        '404':
+          description: Not found
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /api/subscriptions:
+    post:
+      tags: [Subscriptions]
+      summary: Subscribe email (public)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscribeRequest'
+      responses:
+        '201':
+          description: Subscribed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscribeResponse'
+        '400':
+          description: Validation error
+
+  /api/subscriptions/admin:
+    get:
+      tags: [Subscriptions]
+      summary: List subscriptions (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+            maximum: 200
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [subscribed, unsubscribed, all]
+            default: subscribed
+        - in: query
+          name: q
+          description: Search by email (contains)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Subscriptions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionListResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /api/subscriptions/admin/send:
+    post:
+      tags: [Subscriptions]
+      summary: Send bulk email to subscribers (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkEmailRequest'
+      responses:
+        '200':
+          description: Bulk email sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkEmailResponse'
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+
+    LoginRequest:
+      type: object
+      required: [identifier, password]
+      properties:
+        identifier:
+          type: string
+        password:
+          type: string
+          minLength: 8
+
+    SignupRequest:
+      type: object
+      required: [fullName, mobileNumber, email, username, password, adminAccessCode]
+      properties:
+        fullName:
+          type: string
+        mobileNumber:
+          type: string
+        email:
+          type: string
+          format: email
+        username:
+          type: string
+        password:
+          type: string
+          minLength: 8
+        adminAccessCode:
+          type: string
+          minLength: 8
+          description: Admin access code from an existing user/admin or bootstrap code
+
+    VerifyOtpRequest:
+      type: object
+      required: [identifier, otp]
+      properties:
+        identifier:
+          type: string
+        otp:
+          type: string
+          minLength: 6
+          maxLength: 6
+
+    ForgotPasswordRequest:
+      type: object
+      required: [username]
+      properties:
+        username:
+          type: string
+
+    VerifyForgotPasswordRequest:
+      type: object
+      required: [username, otp, newPassword]
+      properties:
+        username:
+          type: string
+        otp:
+          type: string
+          minLength: 6
+          maxLength: 6
+        newPassword:
+          type: string
+          minLength: 8
+
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        admin:
+          type: object
+          properties:
+            id:
+              type: string
+            userId:
+              type: string
+            fullName:
+              type: string
+            email:
+              type: string
+              format: email
+            role:
+              type: string
+            adminAccessCode:
+              type: string
+              description: Access code used to authorize creation of admin accounts
+
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+            userId:
+              type: string
+            fullName:
+              type: string
+            email:
+              type: string
+              format: email
+            role:
+              type: string
+            adminAccessCode:
+              type: string
+              description: Access code used to authorize creation of admin accounts
+
+
+    Blog:
+      type: object
+      properties:
+        _id:
+          type: string
+        title:
+          type: string
+        slug:
+          type: string
+        content:
+          type: string
+        shortDescription:
+          type: string
+        longDescription:
+          type: string
+        summaryPoints:
+          type: array
+          items:
+            type: string
+        author:
+          type: string
+        category:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        featuredImage:
+          type: string
+        seoTitle:
+          type: string
+        seoDescription:
+          type: string
+        published:
+          type: boolean
+        publishedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    BlogCreate:
+      type: object
+      required: [title, slug, content]
+      properties:
+        title:
+          type: string
+        slug:
+          type: string
+        content:
+          type: string
+        shortDescription:
+          type: string
+          description: Optional short description
+        longDescription:
+          type: string
+          description: Optional long description
+        summaryPoints:
+          oneOf:
+            - type: array
+              items:
+                type: string
+            - type: string
+              description: Comma-separated summary points
+        author:
+          type: string
+        category:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        featuredImage:
+          type: string
+        seoTitle:
+          type: string
+        seoDescription:
+          type: string
+        published:
+          type: boolean
+
+    BlogUpdate:
+      allOf:
+        - $ref: '#/components/schemas/BlogCreate'
+
+    BlogListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Blog'
+        pagination:
+          type: object
+          properties:
+            total:
+              type: integer
+            page:
+              type: integer
+            pages:
+              type: integer
+
+    BlogCategory:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+        active:
+          type: boolean
+        order:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    BlogCategoryCreate:
+      type: object
+      required: [name, slug]
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+        active:
+          type: boolean
+        order:
+          type: integer
+
+    BlogCategoryUpdate:
+      allOf:
+        - $ref: '#/components/schemas/BlogCategoryCreate'
+
+    Appointment:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        service:
+          type: string
+        date:
+          type: string
+        time:
+          type: string
+        message:
+          type: string
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        createdAt:
+          type: string
+          format: date-time
+
+    AppointmentCreate:
+      type: object
+      required: [name, email, phone, service, doctor_id, date, time]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        service:
+          type: string
+        doctor_id:
+          type: string
+        date:
+          type: string
+        time:
+          type: string
+        message:
+          type: string
+
+    AppointmentStatusUpdate:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+
+    Contact:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        message:
+          type: string
+        replied:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    ContactCreate:
+      type: object
+      required: [name, email, phone, message]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        message:
+          type: string
+
+    ContactReply:
+      type: object
+      required: [reply]
+      properties:
+        subject:
+          type: string
+        reply:
+          type: string
+
+    Testimonial:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        review:
+          type: string
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        image:
+          type: string
+        email:
+          type: string
+          format: email
+        approved:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    TestimonialCreate:
+      type: object
+      required: [name, review, rating]
+      properties:
+        name:
+          type: string
+        review:
+          type: string
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        image:
+          type: string
+        email:
+          type: string
+          format: email
+
+    TestimonialUpdate:
+      allOf:
+        - $ref: '#/components/schemas/TestimonialCreate'
+        - type: object
+          properties:
+            approved:
+              type: boolean
+
+    Service:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        shortDescription:
+          type: string
+        detailedDescription:
+          type: string
+        points:
+          type: array
+          items:
+            type: string
+        icon:
+          type: string
+        active:
+          type: boolean
+        order:
+          type: integer
+
+    ServiceCreate:
+      type: object
+      required: [name, description]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          description: Short description (backward compatible)
+        icon:
+          type: string
+        active:
+          type: boolean
+        order:
+          type: integer
+        shortDescription:
+          type: string
+          description: Optional short description
+        detailedDescription:
+          type: string
+          description: Optional long/detailed description
+        points:
+          oneOf:
+            - type: array
+              items:
+                type: string
+            - type: string
+              description: Comma-separated points
+
+    ServiceUpdate:
+      allOf:
+        - $ref: '#/components/schemas/ServiceCreate'
+
+    Banner:
+      type: object
+      properties:
+        _id:
+          type: string
+        countText:
+          type: string
+          example: '50+'
+        category:
+          type: string
+          example: 'Doctors'
+        logoUrl:
+          type: string
+          example: 'https://example.com/icon.png'
+        active:
+          type: boolean
+        order:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    BannerCreate:
+      type: object
+      required: [countText, category, logoUrl]
+      properties:
+        countText:
+          type: string
+          maxLength: 20
+        category:
+          type: string
+          maxLength: 60
+        logoUrl:
+          type: string
+          maxLength: 500
+        active:
+          type: boolean
+          default: true
+        order:
+          type: integer
+          default: 0
+
+    BannerUpdate:
+      allOf:
+        - $ref: '#/components/schemas/BannerCreate'
+
+    EmailSubscription:
+      type: object
+      properties:
+        _id:
+          type: string
+        email:
+          type: string
+          format: email
+        status:
+          type: string
+          enum: [subscribed, unsubscribed]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    SubscribeRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+
+    SubscribeResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        subscription:
+          $ref: '#/components/schemas/EmailSubscription'
+
+    SubscriptionListResponse:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/EmailSubscription'
+
+    BulkEmailRequest:
+      type: object
+      required: [subject]
+      properties:
+        subject:
+          type: string
+        message:
+          type: string
+          description: Plain text message (converted to HTML)
+        html:
+          type: string
+          description: If provided, used as-is
+        mode:
+          type: string
+          enum: [all, selected]
+          default: all
+        selectedIds:
+          type: array
+          items:
+            type: string
+          default: []
+        selectedEmails:
+          type: array
+          items:
+            type: string
+            format: email
+          default: []
+
+    BulkEmailResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        recipientsCount:
+          type: integer
+        batches:
+          type: integer
+
+    Faq:
+      type: object
+      properties:
+        _id:
+          type: string
+        faqId:
+          type: string
+        question:
+          type: string
+        answer:
+          type: string
+        faqType:
+          type: string
+          enum: [COACHING, CONTACT, GENERAL]
+        status:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    FaqCreate:
+      type: object
+      required: [question, answer, faqType]
+      properties:
+        question:
+          type: string
+        answer:
+          type: string
+        faqType:
+          type: string
+          enum: [COACHING, CONTACT, GENERAL]
+        status:
+          type: boolean
+
+    FaqUpdate:
+      allOf:
+        - $ref: '#/components/schemas/FaqCreate'
+
+    DoctorAvailability:
+      type: object
+      properties:
+        _id: { type: string }
+        doctorId: { type: string }
+        date: { type: string, nullable: true, example: '2026-03-20' }
+        dayOfWeek:
+          type: string
+          enum: [Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday]
+        startTime: { type: string, example: '10:00' }
+        endTime: { type: string, example: '18:00' }
+        slotDuration: { type: integer, example: 30 }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    DoctorAvailabilityCreate:
+      type: object
+      required: [doctor_id, day_of_week, start_time, end_time, slot_duration]
+      properties:
+        doctor_id: { type: string }
+        date: { type: string, example: '2026-03-20' }
+        day_of_week:
+          type: string
+          enum: [Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday]
+        start_time: { type: string, example: '10:00' }
+        end_time: { type: string, example: '18:00' }
+        slot_duration: { type: integer, example: 30 }
+
+    DoctorBreak:
+      type: object
+      properties:
+        _id: { type: string }
+        doctorId: { type: string }
+        date: { type: string, nullable: true, example: '2026-03-20' }
+        dayOfWeek:
+          type: string
+          enum: [Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday]
+        startTime: { type: string, example: '13:00' }
+        endTime: { type: string, example: '14:00' }
+        reason: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    DoctorBreakCreate:
+      type: object
+      required: [doctor_id, day_of_week, start_time, end_time]
+      properties:
+        doctor_id: { type: string }
+        date: { type: string, example: '2026-03-20' }
+        day_of_week:
+          type: string
+          enum: [Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday]
+        start_time: { type: string, example: '13:00' }
+        end_time: { type: string, example: '14:00' }
+        reason: { type: string }
+
+    BlockedSlot:
+      type: object
+      properties:
+        _id: { type: string }
+        doctorId: { type: string }
+        date: { type: string, example: '2026-03-20' }
+        startTime: { type: string, example: '11:00' }
+        endTime: { type: string, example: '12:00' }
+        reason: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    BlockedSlotCreate:
+      type: object
+      required: [doctor_id, date, start_time, end_time]
+      properties:
+        doctor_id: { type: string }
+        date: { type: string, example: '2026-03-20' }
+        start_time: { type: string, example: '11:00' }
+        end_time: { type: string, example: '12:00' }
+        reason: { type: string }
+
+    GeneratedSlot:
+      type: object
+      properties:
+        time: { type: string, example: '10:00' }
+        status: { type: string, enum: [available, booked, blocked, break] }
+        reason: { type: string }
+
+    DashboardCounts:
+      type: object
+      properties:
+        today:
+          type: string
+        services:
+          type: object
+          properties:
+            active: { type: integer }
+            inactive: { type: integer }
+            total: { type: integer }
+        blogs:
+          type: object
+          properties:
+            published: { type: integer }
+            unpublished: { type: integer }
+            total: { type: integer }
+        blogCategories:
+          type: object
+          properties:
+            active: { type: integer }
+            inactive: { type: integer }
+            total: { type: integer }
+        testimonials:
+          type: object
+          properties:
+            approved: { type: integer }
+            pending: { type: integer }
+            total: { type: integer }
+        faqs:
+          type: object
+          properties:
+            active: { type: integer }
+            inactive: { type: integer }
+            total: { type: integer }
+        contacts:
+          type: object
+          properties:
+            replied: { type: integer }
+            notReplied: { type: integer }
+            total: { type: integer }
+        appointments:
+          type: object
+          properties:
+            total: { type: integer }
+            pending: { type: integer }
+            approved: { type: integer }
+            rejected: { type: integer }
+            today:
+              type: object
+              properties:
+                total: { type: integer }
+                pending: { type: integer }
+                approved: { type: integer }
+
+    SeoMeta:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        keywords:
+          type: array
+          items:
+            type: string
+
+    SiteSettings:
+      type: object
+      properties:
+        clinicName:
+          type: string
+        tagline:
+          type: string
+        contactEmail:
+          type: string
+        contactPhone:
+          type: string
+        address:
+          type: string
+        mapEmbedUrl:
+          type: string
+        hero:
+          type: object
+          properties:
+            title:
+              type: string
+            subtitle:
+              type: string
+            ctaText:
+              type: string
+            ctaLink:
+              type: string
+            backgroundImage:
+              type: string
+        about:
+          type: object
+          properties:
+            heading:
+              type: string
+            content:
+              type: string
+            dentistName:
+              type: string
+            dentistQualifications:
+              type: string
+        seo:
+          type: object
+          properties:
+            home:
+              $ref: '#/components/schemas/SeoMeta'
+            services:
+              $ref: '#/components/schemas/SeoMeta'
+            blogs:
+              $ref: '#/components/schemas/SeoMeta'
+            contact:
+              $ref: '#/components/schemas/SeoMeta'
+            appointment:
+              $ref: '#/components/schemas/SeoMeta'
