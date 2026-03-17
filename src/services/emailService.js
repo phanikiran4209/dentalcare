@@ -1,19 +1,52 @@
 const { getTransporter, verifyTransporter } = require('../config/mailConfig');
 const { logger } = require('../utils/logger');
+let sendgridClient = null;
+
+const getSendGridClient = () => {
+  if (sendgridClient) return sendgridClient;
+  const key = String(process.env.SENDGRID_API_KEY || '').trim();
+  if (!key) return null;
+  // Lazy require so local dev without key doesn't break
+  // eslint-disable-next-line global-require
+  const sgMail = require('@sendgrid/mail');
+  sgMail.setApiKey(key);
+  sendgridClient = sgMail;
+  return sendgridClient;
+};
+
+const asArray = (value) => {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.filter(Boolean);
+  return [value].filter(Boolean);
+};
+
+const fallbackSendWithSendGrid = async ({ to, subject, html, from, cc, bcc, text }) => {
+  const sg = getSendGridClient();
+  if (!sg) throw new Error('SendGrid is not configured');
+
+  const fromEmail = from || process.env.MAIL_FROM || process.env.SMTP_USER;
+
+  const msg = {
+    to: asArray(to),
+    cc: asArray(cc),
+    bcc: asArray(bcc),
+    from: fromEmail,
+    subject,
+    html,
+    text,
+  };
+
+  const [resp] = await sg.send(msg);
+  return {
+    provider: 'sendgrid',
+    statusCode: resp && resp.statusCode,
+  };
+};
 
 const sendEmail = async ({ to, subject, html, from, cc, bcc, text }) => {
   if (process.env.NODE_ENV === 'test') {
     return { messageId: 'test', accepted: [to], rejected: [] };
   }
-
-  try {
-    await verifyTransporter();
-  } catch (err) {
-    logger.error('SMTP verify failed', { error: err });
-    throw err;
-  }
-
-  const transporter = getTransporter();
 
   const mailOptions = {
     from: from || process.env.MAIL_FROM,
@@ -26,9 +59,37 @@ const sendEmail = async ({ to, subject, html, from, cc, bcc, text }) => {
   };
 
   try {
+    await verifyTransporter();
+    const transporter = getTransporter();
     return await transporter.sendMail(mailOptions);
   } catch (err) {
-    logger.error('Email send failed', { to, subject, error: err });
+    const isSmtpNetworkError =
+      err &&
+      (err.code === 'ETIMEDOUT' ||
+        err.code === 'ECONNREFUSED' ||
+        err.code === 'EHOSTUNREACH' ||
+        err.code === 'ENETUNREACH' ||
+        err.code === 'ESOCKET');
+
+    logger.error('Email send failed', {
+      to,
+      subject,
+      error: { message: err.message, code: err.code, responseCode: err.responseCode },
+      willFallbackToSendGrid: Boolean(isSmtpNetworkError && process.env.SENDGRID_API_KEY),
+    });
+
+    // Fallback for server environments where outbound SMTP is blocked.
+    if (isSmtpNetworkError && process.env.SENDGRID_API_KEY) {
+      try {
+        return await fallbackSendWithSendGrid(mailOptions);
+      } catch (fallbackErr) {
+        logger.error('SendGrid fallback failed', {
+          error: { message: fallbackErr.message, code: fallbackErr.code, responseCode: fallbackErr.responseCode },
+        });
+        throw err;
+      }
+    }
+
     throw err;
   }
 };
