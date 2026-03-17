@@ -4,6 +4,7 @@ const { generateToken } = require('../utils/jwtUtils');
 const { sendEmail } = require('../services/emailService');
 const generateUniqueId = require('generate-unique-id');
 const crypto = require('crypto');
+const { logger } = require('../utils/logger');
 
 const generateAdminAccessCode = () => {
   // 12 chars, URL-safe-ish, uppercase for easy typing
@@ -78,6 +79,11 @@ const login = async (req, res, next) => {
       });
     } catch (err) {
       emailSent = false;
+      logger.error('Login OTP email failed', {
+        message: err.message,
+        code: err.code,
+        responseCode: err.responseCode,
+      });
     }
 
     res.json({
@@ -222,6 +228,11 @@ const signup = async (req, res, next) => {
       });
     } catch (err) {
       emailSent = false;
+      logger.error('Signup OTP email failed', {
+        message: err.message,
+        code: err.code,
+        responseCode: err.responseCode,
+      });
     }
 
     res.status(201).json({
@@ -291,6 +302,11 @@ const forgotPassword = async (req, res, next) => {
       });
     } catch (err) {
       emailSent = false;
+      logger.error('Forgot password OTP email failed', {
+        message: err.message,
+        code: err.code,
+        responseCode: err.responseCode,
+      });
     }
 
     res.json({
