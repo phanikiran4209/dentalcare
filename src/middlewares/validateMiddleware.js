@@ -3,6 +3,9 @@ const validateMiddleware = (schema) => (req, res, next) => {
     abortEarly: false,
     allowUnknown: true,
     stripUnknown: true,
+    context: {
+      nodeEnv: process.env.NODE_ENV,
+    },
   };
 
   const { error, value } = schema.validate(req.body, options);

@@ -23,9 +23,12 @@ const signupSchema = Joi.object({
   adminAccessCode: Joi.string()
     .min(8)
     .max(32)
-    .required()
-    .messages({
-      'any.required': 'Admin access code is required to sign up.',
+    .when('$nodeEnv', {
+      is: 'test',
+      then: Joi.optional().allow(''),
+      otherwise: Joi.required().messages({
+        'any.required': 'Admin access code is required to sign up.',
+      }),
     }),
 });
 

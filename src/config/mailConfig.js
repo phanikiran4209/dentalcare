@@ -1,10 +1,31 @@
 const nodemailer = require('nodemailer');
 const dotenv = require('dotenv');
+const { logger } = require('../utils/logger');
 
 dotenv.config();
 
 let transporter;
 let verifiedOnce = false;
+
+const normalizeSmtpPass = (pass, host, service) => {
+  const raw = String(pass || '');
+  const h = String(host || '').toLowerCase();
+  const s = String(service || '').toLowerCase();
+
+  // Gmail app-passwords are often shown with spaces (xxxx xxxx xxxx xxxx)
+  // Nodemailer expects the actual value without spaces.
+  const looksLikeGmail = s === 'gmail' || h.includes('gmail');
+  if (looksLikeGmail && /\s/.test(raw)) {
+    const compact = raw.replace(/\s+/g, '');
+    // Only apply when it still looks like an app password length.
+    if (compact.length >= 16) {
+      logger.warn('Normalizing SMTP_PASS by removing spaces for Gmail');
+      return compact;
+    }
+  }
+
+  return raw;
+};
 
 const getTransporter = () => {
   if (transporter) return transporter;
@@ -14,6 +35,7 @@ const getTransporter = () => {
   }
 
   const host = String(process.env.SMTP_HOST || '').trim();
+  const pass = normalizeSmtpPass(process.env.SMTP_PASS, host, process.env.SMTP_SERVICE);
 
   // Works for Gmail app passwords when SMTP_HOST is set to smtp.gmail.com
   // (or when SMTP_SERVICE=gmail is used).
@@ -21,13 +43,13 @@ const getTransporter = () => {
     process.env.SMTP_SERVICE && String(process.env.SMTP_SERVICE).toLowerCase() === 'gmail'
       ? {
           service: 'gmail',
-          auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+          auth: { user: process.env.SMTP_USER, pass },
         }
       : {
           host,
           port: Number(process.env.SMTP_PORT) || 587,
           secure: process.env.SMTP_SECURE === 'true',
-          auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+          auth: { user: process.env.SMTP_USER, pass },
         };
 
   transporter = nodemailer.createTransport({
@@ -43,10 +65,10 @@ const getTransporter = () => {
 
 const verifyTransporter = async () => {
   if (verifiedOnce) return;
-  verifiedOnce = true;
 
   const t = getTransporter();
   await t.verify();
+  verifiedOnce = true;
 };
 
 module.exports = { getTransporter, verifyTransporter };
