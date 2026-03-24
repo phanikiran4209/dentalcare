@@ -3,7 +3,6 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
-const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
 const dotenv = require('dotenv');
@@ -26,7 +25,8 @@ const dashboardRoutes = require('./routes/dashboardRoutes');
 const schedulingRoutes = require('./routes/schedulingRoutes');
 const bannerRoutes = require('./routes/bannerRoutes');
 const subscriptionRoutes = require('./routes/subscriptionRoutes');
-
+const userRoutes = require('./routes/userRoutes');
+const headerRoutes = require('./routes/headerRoutes');
 dotenv.config();
 
 const app = express();
@@ -59,14 +59,6 @@ app.use(mongoSanitize());
 app.use(xss());
 app.use(compression());
 
-// Rate limiter for all routes
-const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: 'Too many requests from this IP, please try again later.',
-});
-app.use(globalLimiter);
-
 // Logging
 if (process.env.NODE_ENV !== 'test') {
   app.use(morgan('combined', { stream: httpLogger.stream }));
@@ -94,6 +86,8 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/schedule', schedulingRoutes);
 app.use('/api/banners', bannerRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/headers', headerRoutes);
 
 // 404 handler
 app.use((req, res, next) => {

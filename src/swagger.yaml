@@ -22,6 +22,8 @@ tags:
   - name: Health
   - name: Banners
   - name: Subscriptions
+  - name: Users
+  - name: Headers
 
 paths:
   /health:
@@ -789,6 +791,82 @@ paths:
         '401':
           description: Unauthorized
 
+  /api/headers:
+    get:
+      tags: [Headers]
+      summary: Get all header details (public)
+      responses:
+        '200':
+          description: Header details
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Header'
+    post:
+      tags: [Headers]
+      summary: Create header details (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Header'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Header'
+
+  /api/headers/{id}:
+    put:
+      tags: [Headers]
+      summary: Update header details (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Header'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Header'
+        '404':
+          description: Not found
+    delete:
+      tags: [Headers]
+      summary: Delete header details (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted
+        '404':
+          description: Not found
+
   /api/settings:
     get:
       tags: [Settings]
@@ -944,6 +1022,32 @@ paths:
                   $ref: '#/components/schemas/GeneratedSlot'
         '400':
           description: Validation error
+
+  /api/schedule/slots-by-date:
+    get:
+      tags: [Schedule]
+      summary: Get available slots for a date (public, default doctor)
+      description: Uses server-configured PUBLIC_DOCTOR_ID (or first admin) to generate slots.
+      parameters:
+        - in: query
+          name: date
+          required: true
+          schema:
+            type: string
+            example: '2026-03-20'
+      responses:
+        '200':
+          description: Slots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GeneratedSlot'
+        '400':
+          description: Validation error
+        '404':
+          description: No doctor configured
 
   /api/banners:
     get:
@@ -1142,6 +1246,20 @@ paths:
         '403':
           description: Forbidden
 
+  /api/users:
+    get:
+      tags: [Users]
+      summary: List verified users (public)
+      responses:
+        '200':
+          description: Users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PublicUser'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1241,6 +1359,33 @@ components:
             adminAccessCode:
               type: string
               description: Access code used to authorize creation of admin accounts
+
+    PublicUser:
+      type: object
+      properties:
+        _id:
+          type: string
+        userId:
+          type: string
+        fullName:
+          type: string
+        mobileNumber:
+          type: string
+        email:
+          type: string
+          format: email
+        username:
+          type: string
+        isVerified:
+          type: boolean
+        adminAccessCode:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
 
         user:
           type: object
@@ -1991,3 +2136,30 @@ components:
               $ref: '#/components/schemas/SeoMeta'
             appointment:
               $ref: '#/components/schemas/SeoMeta'
+
+    Header:
+      type: object
+      properties:
+        _id:
+          type: string
+        locationName:
+          type: string
+        mapLink:
+          type: string
+        email:
+          type: string
+        timings:
+          type: string
+        callNumber:
+          type: string
+        whatsappNumber:
+          type: string
+        socialLinks:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              url:
+                type: string

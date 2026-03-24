@@ -4,12 +4,12 @@ const testimonialCreateSchema = Joi.object({
   name: Joi.string().max(100).required(),
   review: Joi.string().max(1000).required(),
   rating: Joi.number().integer().min(1).max(5).required(),
-  image: Joi.string().uri().allow(''),
-  email: Joi.string().email().allow(''),
+  image: Joi.string().allow('', null).optional(),
+  email: Joi.string().email().required(),
 });
 
 const testimonialUpdateSchema = testimonialCreateSchema
-  .fork(['name', 'review', 'rating'], (schema) => schema.optional())
+  .fork(['name', 'review', 'rating', 'email'], (schema) => schema.optional())
   .keys({
     approved: Joi.boolean(),
   });

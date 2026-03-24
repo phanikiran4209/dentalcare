@@ -59,6 +59,19 @@ const updateAppointmentStatus = async (req, res, next) => {
 
     const before = appointment.toObject();
 
+    // If admin is changing schedule (date/time), ensure the new slot is bookable.
+    if ((date && date !== appointment.date) || (time && time !== appointment.time)) {
+      const nextDate = date || appointment.date;
+      const nextTime = time || appointment.time;
+      const bookable = await assertSlotBookable({ doctorId: appointment.doctorId, date: nextDate, time: nextTime });
+      if (!bookable.ok) {
+        return res.status(400).json({
+          message: 'Selected time slot is not available',
+          reason: bookable.reason,
+        });
+      }
+    }
+
     if (status) {
       appointment.status = status;
     }

@@ -2,6 +2,8 @@ const Appointment = require('../models/Appointment');
 const DoctorAvailability = require('../models/DoctorAvailability');
 const DoctorBreak = require('../models/DoctorBreak');
 const BlockedSlot = require('../models/BlockedSlot');
+const DoctorAvailabilityRange = require('../models/DoctorAvailabilityRange');
+const SlotOverride = require('../models/SlotOverride');
 
 function parseTimeToMinutes(hhmm) {
   const [h, m] = String(hhmm).split(':').map((x) => Number(x));
@@ -37,7 +39,19 @@ async function generateSlotsForDate({ doctorId, date }) {
   // Prefer date-specific availability; fall back to weekly (dayOfWeek only)
   const availability =
     (await DoctorAvailability.findOne({ doctorId, date }).lean()) ||
-    (await DoctorAvailability.findOne({ doctorId, dayOfWeek, $or: [{ date: null }, { date: { $exists: false } }] }).lean());
+    (await DoctorAvailabilityRange.findOne({
+      doctorId,
+      dayOfWeek,
+      startDate: { $lte: date },
+      endDate: { $gte: date },
+    })
+      .sort({ startDate: -1 })
+      .lean()) ||
+    (await DoctorAvailability.findOne({
+      doctorId,
+      dayOfWeek,
+      $or: [{ date: null }, { date: { $exists: false } }],
+    }).lean());
   if (!availability) {
     return { dayOfWeek, slots: [] };
   }
@@ -50,7 +64,7 @@ async function generateSlotsForDate({ doctorId, date }) {
     return { dayOfWeek, slots: [] };
   }
 
-  const [breaks, blocks, booked] = await Promise.all([
+  const [breaks, blocks, booked, overrides] = await Promise.all([
     DoctorBreak.find({
       doctorId,
       $or: [{ dayOfWeek }, { date }],
@@ -63,9 +77,11 @@ async function generateSlotsForDate({ doctorId, date }) {
     })
       .select('time')
       .lean(),
+    SlotOverride.find({ doctorId, date }).lean(),
   ]);
 
   const bookedTimes = new Set(booked.map((b) => b.time));
+  const overrideByTime = new Map(overrides.map((o) => [o.time, o]));
   const breaksRanges = breaks
     .map((b) => ({
       start: parseTimeToMinutes(b.startTime),
@@ -87,6 +103,16 @@ async function generateSlotsForDate({ doctorId, date }) {
     const time = minutesToTime(t);
     const slotStart = t;
     const slotEnd = t + duration;
+
+    const override = overrideByTime.get(time);
+    if (override) {
+      slots.push({
+        time,
+        status: override.status,
+        reason: override.reason || override.label || override.status,
+      });
+      continue;
+    }
 
     const breakHit = breaksRanges.find((r) => overlaps(slotStart, slotEnd, r.start, r.end));
     if (breakHit) {

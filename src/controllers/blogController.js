@@ -14,8 +14,12 @@ const normalizePoints = (value) => {
 
 const getBlogs = async (req, res, next) => {
   try {
-    // For dashboard use: return all blogs, newest first, no filters/pagination required.
-    const blogs = await Blog.find().sort({ createdAt: -1 }).lean();
+    // For dashboard use: return all blogs if authenticated as admin.
+    // Otherwise, return only published blogs.
+    const isAdmin = req.user && req.user.role === 'super_admin';
+    const filter = isAdmin ? {} : { published: true };
+
+    const blogs = await Blog.find(filter).sort({ createdAt: -1 }).lean();
     res.json(blogs);
   } catch (err) {
     next(err);

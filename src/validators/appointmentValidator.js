@@ -13,6 +13,8 @@ const appointmentCreateSchema = Joi.object({
 
 const appointmentStatusSchema = Joi.object({
   status: Joi.string().valid('pending', 'approved', 'rejected').required(),
+  date: Joi.string().optional(),
+  time: Joi.string().optional(),
 });
 
 module.exports = {
