@@ -36,7 +36,7 @@ const app = express();
 // ✅ Allowed origins (IMPORTANT FIX)
 const allowedOrigins = [
   'http://localhost:5173',
-  'https://dental-fe-kappa.vercel.app'
+  'https://dentalclinic-snowy.vercel.app/'
 ];
 
 // Global request timeout
