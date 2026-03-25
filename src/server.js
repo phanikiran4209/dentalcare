@@ -27,11 +27,19 @@ const bannerRoutes = require('./routes/bannerRoutes');
 const subscriptionRoutes = require('./routes/subscriptionRoutes');
 const userRoutes = require('./routes/userRoutes');
 const headerRoutes = require('./routes/headerRoutes');
+
 dotenv.config();
 
 const app = express();
 
-// Global request timeout (keeps Swagger/UI from spinning forever)
+
+// ✅ Allowed origins (IMPORTANT FIX)
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://dental-fe-kappa.vercel.app'
+];
+
+// Global request timeout
 app.use((req, res, next) => {
   res.setTimeout(Number(process.env.REQUEST_TIMEOUT_MS) || 15000, () => {
     if (!res.headersSent) {
@@ -41,18 +49,34 @@ app.use((req, res, next) => {
   next();
 });
 
-// Trust proxy (for rate limiting / proxies)
+// Trust proxy
 app.set('trust proxy', 1);
 
 // Global middlewares
 app.use(helmet());
+
+// ✅ FIXED CORS CONFIG
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: function (origin, callback) {
+      // allow requests with no origin (like Postman)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS not allowed for origin: ${origin}`));
+      }
+    },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
   })
 );
+
+// Handle preflight requests
+app.options('*', cors());
+
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(mongoSanitize());
@@ -101,7 +125,6 @@ const BASE_PORT = Number(process.env.PORT) || 5000;
 
 const start = async () => {
   try {
-    // Connect to database before accepting traffic (avoids hanging buffered queries).
     await connectDB();
 
     const env = process.env.NODE_ENV || 'development';
