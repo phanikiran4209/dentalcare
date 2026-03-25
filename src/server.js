@@ -12,6 +12,7 @@ const { connectDB } = require('./config/database');
 const { logger, httpLogger } = require('./utils/logger');
 const { swaggerDocument } = require('./config/swagger');
 const errorHandler = require('./middlewares/errorHandler');
+
 const authRoutes = require('./routes/authRoutes');
 const blogRoutes = require('./routes/blogRoutes');
 const blogCategoryRoutes = require('./routes/blogCategoryRoutes');
@@ -33,11 +34,41 @@ dotenv.config();
 const app = express();
 
 
-// ✅ Allowed origins (IMPORTANT FIX)
+// ✅ SMART CORS CONFIG (FINAL FIX)
 const allowedOrigins = [
   'http://localhost:5173',
-  'https://dentalclinic-snowy.vercel.app/'
+  'https://dental-fe-kappa.vercel.app',
+  'https://dentalclinic-snowy.vercel.app'
 ];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // allow requests with no origin (Postman, mobile apps)
+      if (!origin) return callback(null, true);
+
+      // allow known domains
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // ✅ allow ANY vercel deployment automatically
+      if (origin.includes('vercel.app')) {
+        return callback(null, true);
+      }
+
+      console.log('❌ Blocked by CORS:', origin);
+      return callback(new Error('Not allowed by CORS'));
+    },
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+  })
+);
+
+// ✅ Handle preflight requests
+app.options('*', cors());
+
 
 // Global request timeout
 app.use((req, res, next) => {
@@ -52,31 +83,8 @@ app.use((req, res, next) => {
 // Trust proxy
 app.set('trust proxy', 1);
 
-// Global middlewares
+// Security middlewares
 app.use(helmet());
-
-// ✅ FIXED CORS CONFIG
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      // allow requests with no origin (like Postman)
-      if (!origin) return callback(null, true);
-
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error(`CORS not allowed for origin: ${origin}`));
-      }
-    },
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true,
-  })
-);
-
-// Handle preflight requests
-app.options('*', cors());
-
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(mongoSanitize());
@@ -114,7 +122,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/headers', headerRoutes);
 
 // 404 handler
-app.use((req, res, next) => {
+app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
@@ -128,25 +136,15 @@ const start = async () => {
     await connectDB();
 
     const env = process.env.NODE_ENV || 'development';
-    const maxPortAttempts = env === 'production' ? 1 : 10;
 
-    const listenOnPort = (port, attempt = 1) => {
-      const server = app.listen(port, () => {
-        logger.info(`Server running in ${env} mode on port ${port}`);
-      });
+    const server = app.listen(BASE_PORT, () => {
+      logger.info(`Server running in ${env} mode on port ${BASE_PORT}`);
+    });
 
-      server.on('error', (err) => {
-        if (err && err.code === 'EADDRINUSE' && attempt < maxPortAttempts) {
-          logger.warn(`Port ${port} in use, trying ${port + 1}...`);
-          return listenOnPort(port + 1, attempt + 1);
-        }
-
-        logger.error('Server failed to start', { error: err });
-        process.exit(1);
-      });
-    };
-
-    listenOnPort(BASE_PORT);
+    server.on('error', (err) => {
+      logger.error('Server failed to start', { error: err });
+      process.exit(1);
+    });
   } catch (err) {
     logger.error('Failed to start server', { error: err });
     process.exit(1);
